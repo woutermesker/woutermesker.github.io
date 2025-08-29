@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>HSBC Tower Block</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="game-container">
+      <div class="score-container">
+        <div id="score">0</div>
+        <div id="level">0</div>
+        <div id="high-score">Best: 0</div>
+      </div>
+      <canvas id="game"></canvas>
+      <div class="ui-container">
+        <button id="start-button">Start Game</button>
+        <div id="game-over" class="hidden">
+          <h2>Game Over</h2>
+          <p>Your Score: <span id="final-score">0</span></p>
+          <p>High Score: <span id="final-high-score">0</span></p>
+          <button id="restart-button">Play Again</button>
+        </div>
+      </div>
+    </div>
+    <script src="js/game.js"></script>
+  </body>
+</html>
