@@ -2,11 +2,11 @@ class HSBCTowerBlock {
   constructor() {
     this.canvas = document.getElementById("game");
     this.ctx = this.canvas.getContext("2d");
-    
+
     // Canvas dimensions (logical, not device pixels)
     this.canvasWidth = 0;
     this.canvasHeight = 0;
-    
+
     this.startButton = document.getElementById("start-button");
     this.restartButton = document.getElementById("restart-button");
     this.scoreElement = document.getElementById("score");
@@ -15,6 +15,7 @@ class HSBCTowerBlock {
     this.gameOverElement = document.getElementById("game-over");
     this.finalScoreElement = document.getElementById("final-score");
     this.finalHighScoreElement = document.getElementById("final-high-score");
+    this.busElement = document.getElementById("buswrapper");
 
     // Game configuration
     this.blockWidth = 100;
@@ -54,7 +55,7 @@ class HSBCTowerBlock {
 
     this.logoImage = new Image();
     this.logoImage.src = "HSBC-Logo.png";
-    
+
     // For SVG support, uncomment these lines and comment out the PNG lines above:
     // this.logoSVG = null;
     // this.loadSVGLogo();
@@ -68,17 +69,17 @@ class HSBCTowerBlock {
   // Method to load SVG logo for sharp rendering
   async loadSVGLogo() {
     try {
-      const response = await fetch('HSBC-Logo.svg');
+      const response = await fetch("HSBC-Logo.svg");
       const svgText = await response.text();
       const parser = new DOMParser();
-      const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+      const svgDoc = parser.parseFromString(svgText, "image/svg+xml");
       this.logoSVG = svgDoc.documentElement;
-      
+
       // Create a high-resolution version for sharp rendering
       const dpr = window.devicePixelRatio || 1;
-      const svgBlob = new Blob([svgText], {type: 'image/svg+xml'});
+      const svgBlob = new Blob([svgText], { type: "image/svg+xml" });
       const url = URL.createObjectURL(svgBlob);
-      
+
       this.logoImage = new Image();
       this.logoImage.onload = () => URL.revokeObjectURL(url);
       // Set the image size explicitly for high DPI
@@ -86,32 +87,33 @@ class HSBCTowerBlock {
       this.logoImage.height = 200 * dpr;
       this.logoImage.src = url;
     } catch (error) {
-      console.warn('Could not load SVG logo, falling back to PNG');
+      console.warn("Could not load SVG logo, falling back to PNG");
     }
   }
 
   // Alternative method to draw SVG as crisp vector graphics
   drawCrispLogo(block) {
     if (!block.hasLogo) return;
-    
+
     const logoWidth = this.blockWidth * 0.8;
-    const logoHeight = logoWidth * (this.logoImage.height / this.logoImage.width);
+    const logoHeight =
+      logoWidth * (this.logoImage.height / this.logoImage.width);
     const logoX = Math.round(block.x + (block.width - logoWidth) / 2);
     const logoY = Math.round(block.y + (block.height - logoHeight) / 2);
-    
+
     // Save current context settings
     this.ctx.save();
-    
+
     // For maximum sharpness, draw at exact pixel boundaries
     this.ctx.translate(0.5, 0.5); // Half-pixel offset for crisp lines
-    
+
     // Configure for the sharpest possible rendering
     this.ctx.imageSmoothingEnabled = false;
-    this.ctx.imageSmoothingQuality = 'high';
+    this.ctx.imageSmoothingQuality = "high";
     this.ctx.webkitImageSmoothingEnabled = false;
     this.ctx.mozImageSmoothingEnabled = false;
     this.ctx.msImageSmoothingEnabled = false;
-    
+
     this.ctx.drawImage(
       this.logoImage,
       Math.floor(logoX),
@@ -119,7 +121,7 @@ class HSBCTowerBlock {
       Math.ceil(logoWidth),
       Math.ceil(logoHeight)
     );
-    
+
     // Restore context settings
     this.ctx.restore();
   }
@@ -128,26 +130,26 @@ class HSBCTowerBlock {
     // Get device pixel ratio for sharp rendering on high-DPI displays
     const dpr = window.devicePixelRatio || 1;
     const rect = this.canvas.getBoundingClientRect();
-    
+
     // Store logical dimensions
     this.canvasWidth = rect.width;
     this.canvasHeight = rect.height;
-    
+
     // Set the canvas size in device pixels
     this.canvas.width = rect.width * dpr;
     this.canvas.height = rect.height * dpr;
-    
+
     // Scale the canvas back down using CSS
-    this.canvas.style.width = rect.width + 'px';
-    this.canvas.style.height = rect.height + 'px';
-    
+    this.canvas.style.width = rect.width + "px";
+    this.canvas.style.height = rect.height + "px";
+
     // Scale the drawing context so everything draws at the correct size
     this.ctx.scale(dpr, dpr);
-    
+
     // Configure context for sharp rendering
     this.ctx.imageSmoothingEnabled = false;
-    this.ctx.imageSmoothingQuality = 'high';
-    
+    this.ctx.imageSmoothingQuality = "high";
+
     this.blockWidth = Math.min(100, rect.width * 0.35);
     this.redraw();
   }
@@ -212,10 +214,14 @@ class HSBCTowerBlock {
     this.gameOverElement.classList.add("hidden");
     this.startButton.classList.add("hidden");
 
-    // Add first block as base
+    // Reset bus position
+    this.updateBusPosition();
+
+    // Add first block as base (positioned at the top of the road)
+    const roadHeight = this.blockHeight * 1.5; // Road is 1.5 block heights tall
     const baseBlock = {
       x: this.canvasWidth / 2 - this.blockWidth / 2,
-      y: this.canvasHeight - this.blockHeight / 2,
+      y: this.canvasHeight - roadHeight - this.blockHeight,
       width: this.blockWidth,
       height: this.blockHeight,
       isGlass: false,
@@ -246,6 +252,11 @@ class HSBCTowerBlock {
       speed: this.blockSpeed * (1 + this.currentLevel * 0.08), // Slower speed increase
       isGlass,
     };
+  }
+
+  updateBusPosition() {
+    // Bus position is now handled by the camera system and CSS positioning
+    // No need to manually adjust bus position based on road offset
   }
 
   dropBlock() {
@@ -370,12 +381,8 @@ class HSBCTowerBlock {
     // Add camera shake effect
     this.shakeMagnitude = perfectFit ? 5 : snapFit ? 3 : 2;
 
-    // Move the building down when the screen is nearly full
-    if (this.movingBlock.y < this.canvasHeight * 0.2) {
-      this.blocks.forEach((block) => (block.y += this.blockHeight));
-      this.movingBlock.y += this.blockHeight;
-      this.cameraY -= this.blockHeight;
-    }
+    // Keep the top of the tower in the same position by adjusting camera
+    // The camera will automatically move to keep the tower visible
 
     // Create next moving block
     this.createMovingBlock();
@@ -516,8 +523,22 @@ class HSBCTowerBlock {
   }
 
   updateCamera() {
-    // Move camera up as tower grows
-    const targetY = Math.max(0, this.towerHeight - this.canvasHeight * 0.5);
+    // Calculate the highest point of the tower
+    const highestBlockY =
+      this.blocks.length > 0
+        ? Math.min(...this.blocks.map((block) => block.y))
+        : this.canvasHeight;
+
+    // Keep the top of the tower at the very top of the screen
+    const topMargin = this.canvasHeight * 0.15;
+    const targetY = Math.max(0, topMargin - highestBlockY);
+
+    // Move bus if camera Y exceeds threshold
+    if (this.cameraY > 35) {
+      this.busElement.style.transform = "translateY(500px) translateX(-260px)";
+    }
+
+    // Smoothly move camera to target position
     this.cameraY += (targetY - this.cameraY) * 0.1;
 
     // Camera shake effect
@@ -560,7 +581,10 @@ class HSBCTowerBlock {
     }
 
     // Apply camera position (translate up to show tower growth)
-    this.ctx.translate(0, -20);
+    this.ctx.translate(0, this.cameraY);
+
+    // Draw road below the tower
+    this.drawRoad();
 
     // Draw tower blocks
     this.blocks.forEach((block) => {
@@ -589,7 +613,7 @@ class HSBCTowerBlock {
       this.ctx.globalAlpha = light.life / light.maxLife;
       this.ctx.fillStyle = light.color;
       this.ctx.beginPath();
-      this.ctx.arc(light.x, light.y - this.cameraY, light.size, 0, Math.PI * 2);
+      this.ctx.arc(light.x, light.y + this.cameraY, light.size, 0, Math.PI * 2);
       this.ctx.fill();
     });
 
@@ -600,7 +624,7 @@ class HSBCTowerBlock {
       this.ctx.beginPath();
       this.ctx.arc(
         particle.x,
-        particle.y - this.cameraY,
+        particle.y + this.cameraY,
         particle.radius,
         0,
         Math.PI * 2
@@ -609,6 +633,45 @@ class HSBCTowerBlock {
     });
 
     this.ctx.globalAlpha = 1;
+  }
+
+  drawRoad() {
+    const roadHeight = this.blockHeight * 1.5;
+    const roadY = this.canvasHeight - roadHeight;
+
+    // Draw road base - dark asphalt color
+    this.ctx.fillStyle = "#2C2C2C";
+    this.ctx.fillRect(0, roadY, this.canvasWidth, roadHeight);
+
+    // Draw road markings - white dashed lines
+    this.ctx.strokeStyle = "#FFFFFF";
+    this.ctx.lineWidth = 3;
+    this.ctx.setLineDash([15, 10]); // Dashed line pattern
+
+    // Center line
+    this.ctx.beginPath();
+    this.ctx.moveTo(0, roadY + roadHeight / 1.5);
+    this.ctx.lineTo(this.canvasWidth, roadY + roadHeight / 1.5);
+    this.ctx.stroke();
+
+    // Lane markings
+    this.ctx.beginPath();
+    this.ctx.moveTo(0, roadY + roadHeight * 0.35);
+    this.ctx.lineTo(this.canvasWidth, roadY + roadHeight * 0.35);
+    this.ctx.stroke();
+
+    // Reset line dash
+    this.ctx.setLineDash([]);
+
+    // Add some texture with subtle lines
+    this.ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+    this.ctx.lineWidth = 1;
+    for (let i = 0; i < this.canvasWidth; i += 5) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(i, roadY);
+      this.ctx.lineTo(i, roadY + roadHeight);
+      this.ctx.stroke();
+    }
   }
 
   drawHSBCBlockRotated(block) {
